@@ -1,0 +1,9 @@
+# Python ortamları
+env/
+venv/
+__pycache__/
+
+# Veri setleri ve Vektörler (Çok büyük oldukları için yüklenmez)
+Images/
+outputs/
+*.npy
