@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionSearch | Image Retrieval</title>
+    
+    <!-- Modern UI Fontu -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    
+    <style>
+        /* CSS Reset ve Temel Ayarlar */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #111827; line-height: 1.5; padding-bottom: 60px; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        
+        /* Başlık Alanı */
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .header p { color: #6b7280; font-size: 15px; }
+
+        /* Kontrol Paneli */
+        .controls-wrapper { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; max-width: 700px; margin: 0 auto 32px auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        
+        .input-group { display: flex; gap: 12px; margin-bottom: 16px; }
+        .input-group input[type="text"] { flex: 1; padding: 12px 16px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: border-color 0.2s; font-family: 'Inter', sans-serif; }
+        .input-group input[type="text"]:focus { border-color: #111827; }
+        
+        .btn-primary { background: #111827; color: #ffffff; border: none; padding: 12px 20px; font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn-primary:hover { background: #374151; }
+        
+        .btn-secondary { background: #ffffff; color: #374151; border: 1px solid #d1d5db; padding: 12px 20px; font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn-secondary:hover { background: #f3f4f6; }
+
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #9ca3af; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e5e7eb; }
+        .divider::before { margin-right: 12px; }
+        .divider::after { margin-left: 12px; }
+
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
+        .btn-upload { width: 100%; background: #f9fafb; color: #111827; border: 1px dashed #d1d5db; padding: 16px; font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .file-upload-wrapper:hover .btn-upload { background: #f3f4f6; border-color: #9ca3af; }
+
+        .settings-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; font-size: 13px; color: #6b7280; gap: 8px; }
+        select { padding: 6px 12px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; font-family: 'Inter', sans-serif; cursor: pointer; }
+
+        /* Kırpma Arayüzü */
+        .cropper-container-wrapper { display: none; max-width: 700px; margin: 0 auto 32px auto; background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .img-container { max-height: 400px; width: 100%; margin-bottom: 20px; background: #f3f4f6; border-radius: 8px; overflow: hidden; }
+        .img-container img { max-width: 100%; display: block; }
+        .cropper-actions { display: flex; justify-content: flex-end; gap: 12px; }
+
+        /* Meta Paneller (Referans ve İstatistikler) */
+        .meta-container { display: flex; justify-content: space-between; align-items: flex-end; max-width: 1200px; margin: 0 auto 24px auto; }
+        
+        .reference-container { display: none; padding: 12px 16px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; border-left: 3px solid #111827; }
+        .reference-container h3 { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .reference-container img { max-height: 60px; border-radius: 4px; display: none; }
+        .reference-container p { font-size: 14px; font-weight: 500; color: #111827; margin: 0; display: none; }
+
+        .stats-container { display: none; font-size: 12px; color: #6b7280; text-align: right; }
+        .stats-container strong { color: #111827; font-weight: 600; }
+        .btn-reset { background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; margin-left: 8px; text-decoration: underline; font-family: 'Inter', sans-serif; }
+        .btn-reset:hover { color: #dc2626; }
+
+        /* Sonuç Galerisi (Modern Grid) */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        .card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025); }
+        .card-img-wrapper { position: relative; width: 100%; height: 220px; background: #f3f4f6; overflow: hidden; }
+        .card-img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
+        .card:hover .card-img-wrapper img { transform: scale(1.05); }
+        .card-body { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; }
+        .score-badge { display: inline-block; padding: 4px 10px; background: #f3f4f6; color: #374151; font-size: 12px; font-weight: 600; border-radius: 9999px; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="header">
+        <h1>VisionSearch</h1>
+        <p>Advanced Multimodal Image Retrieval Engine</p>
+    </div>
+    
+    <div class="controls-wrapper">
+        <div class="input-group">
+            <input type="text" id="searchInput" placeholder="Search with text (e.g., a quiet morning in the forest)...">
+            <button class="btn-primary" onclick="performTextSearch()">Search Text</button>
+        </div>
+        
+        <div class="divider">or</div>
+        
+        <div class="file-upload-wrapper">
+            <button class="btn-upload">Click to Upload and Crop Image</button>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="settings-row">
+            <label>Results Limit:</label>
+            <select id="topKSelect">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Kırpma Arayüzü -->
+    <div class="cropper-container-wrapper" id="cropperWrapper">
+        <div class="img-container">
+            <img id="imageToCrop" src="">
+        </div>
+        <div class="cropper-actions">
+            <button onclick="cancelCrop()" class="btn-secondary">Cancel</button>
+            <button onclick="cropAndSearch()" class="btn-primary">Search Cropped Area</button>
+        </div>
+    </div>
+
+    <!-- Meta Panel (Referans ve Hız Analizi) -->
+    <div class="meta-container">
+        <div class="reference-container" id="referenceBox">
+            <h3>Query Context</h3>
+            <img id="refImage" src="" alt="Reference">
+            <p id="refText"></p>
+        </div>
+        
+        <div class="stats-container" id="statsPanel">
+            Last: <strong id="lastTime">0.000</strong>s &nbsp;|&nbsp; 
+            Avg: <strong id="avgTime">0.000</strong>s 
+            <span>(<span id="totalSearches">0</span> queries)</span>
+            <button class="btn-reset" onclick="clearStats()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Sonuç Galerisi -->
+    <div class="gallery" id="resultsGallery">
+        <div class="empty-state">Results will appear here.</div>
+    </div>
+
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    let searchTimes = JSON.parse(localStorage.getItem("clipSearchStats")) || [];
+    if (searchTimes.length > 0) updateStatsUI(searchTimes[searchTimes.length - 1]);
+
+    let cropper; 
+
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Error: File size exceeds 10 MB limit.");
+            this.value = ""; 
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        const imageElement = document.getElementById('imageToCrop');
+        imageElement.src = url;
+        
+        document.getElementById('cropperWrapper').style.display = 'block';
+        document.getElementById('resultsGallery').innerHTML = ""; 
+        document.getElementById('referenceBox').style.display = 'none'; 
+
+        if (cropper) cropper.destroy();
+        
+        cropper = new Cropper(imageElement, { viewMode: 1, autoCropArea: 0.8, responsive: true });
+    });
+
+    function cancelCrop() {
+        document.getElementById('cropperWrapper').style.display = 'none';
+        document.getElementById('imageInput').value = "";
+        if (cropper) cropper.destroy();
+    }
+
+    function cropAndSearch() {
+        if (!cropper) return;
+        const topK = document.getElementById("topKSelect").value;
+        
+        showLoading("Analyzing image...");
+        document.getElementById('cropperWrapper').style.display = 'none'; 
+        const startTime = performance.now();
+
+        const croppedDataUrl = cropper.getCroppedCanvas().toDataURL('image/jpeg');
+        document.getElementById('refImage').src = croppedDataUrl;
+        document.getElementById('refImage').style.display = 'block';
+        document.getElementById('refText').style.display = 'none';
+        document.getElementById('referenceBox').style.display = 'block';
+
+        cropper.getCroppedCanvas().toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append("file", blob, "cropped.jpg");
+            formData.append("top_k", topK);
+
+            try {
+                const response = await fetch("/search-by-image", { method: "POST", body: formData });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert("Server Error: " + errorData.detail);
+                    document.getElementById("resultsGallery").innerHTML = "<div class='empty-state' style='color: #ef4444;'>Search failed.</div>";
+                    return;
+                }
+                const data = await response.json();
+                handleStats(startTime, performance.now());
+                renderResults(data.results);
+            } catch (error) {
+                alert("Connection error!");
+            }
+        }, 'image/jpeg'); 
+    }
+
+    async function performTextSearch() {
+        const query = document.getElementById("searchInput").value;
+        const topK = parseInt(document.getElementById("topKSelect").value);
+        if (!query) return;
+        
+        showLoading("Encoding text...");
+        const startTime = performance.now(); 
+
+        document.getElementById('refText').innerText = `"${query}"`;
+        document.getElementById('refText').style.display = 'block';
+        document.getElementById('refImage').style.display = 'none';
+        document.getElementById('referenceBox').style.display = 'block';
+
+        const response = await fetch("/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: query, top_k: topK })
+        });
+        const data = await response.json();
+
+        handleStats(startTime, performance.now());
+        renderResults(data.results);
+    }
+
+    function handleStats(start, end) {
+        const durationInSeconds = (end - start) / 1000;
+        searchTimes.push(durationInSeconds);
+        localStorage.setItem("clipSearchStats", JSON.stringify(searchTimes));
+        updateStatsUI(durationInSeconds);
+    }
+
+    function updateStatsUI(lastDuration) {
+        const sum = searchTimes.reduce((a, b) => a + b, 0);
+        document.getElementById("statsPanel").style.display = "block";
+        document.getElementById("lastTime").innerText = lastDuration.toFixed(3);
+        document.getElementById("avgTime").innerText = (sum / searchTimes.length).toFixed(3);
+        document.getElementById("totalSearches").innerText = searchTimes.length;
+    }
+
+    function clearStats() {
+        searchTimes = [];
+        localStorage.removeItem("clipSearchStats");
+        document.getElementById("statsPanel").style.display = "none";
+    }
+
+    function showLoading(msg) {
+        document.getElementById("resultsGallery").innerHTML = `<div class='empty-state'>${msg}</div>`;
+    }
+
+    function renderResults(results) {
+        const gallery = document.getElementById("resultsGallery");
+        gallery.innerHTML = ""; 
+        results.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+                <div class="card-img-wrapper">
+                    <a href="${item.link}" target="_blank">
+                        <img src="${item.link}" alt="${item.filename}">
+                    </a>
+                </div>
+                <div class="card-body">
+                    <span class="score-badge">Score: ${item.score.toFixed(4)}</span>
+                </div>
+            `;
+            gallery.appendChild(card);
+        });
+    }
+</script>
+</body>
+</html>
